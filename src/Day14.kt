@@ -1,40 +1,66 @@
+import kotlin.math.ceil
+
 fun main() {
 
-    fun step(template: MutableList<Char>, dict: Map<String, Char>) {
-        val iterator = template.listIterator()
-        loop@ while (true) {
-            val c1 = iterator.next()
-            val c2 = if (iterator.hasNext()) iterator.next() else break
-            iterator.previous()
-            iterator.add(dict["$c1$c2"]!!)
+    fun templateToCountMap(template: String): MutableMap<String, Long> {
+        val res = mutableMapOf<String, Long>()
+        template.windowed(2).forEach {
+            res[it] = res.getOrPut(it) { 0L } + 1
         }
+        return res
     }
 
-    fun substructionAfter(steps: Int, template: MutableList<Char>, dict: Map<String, Char>): Long {
-        for (i in 0 until steps) {
-            println("Step #$i")
-            step(template, dict)
-        }
-
-        val charMap = buildMap<Char, Long> {
-            template.forEach { ch ->
-                put(ch, getOrPut(ch) { 0 } + 1)
+    fun step(dict: Map<String, Char>, current: MutableMap<String, Long>) {
+        val res = mutableMapOf<String, Long>()
+        for (entry in current) {
+            val (key, count) = entry
+            val key1 = "${key[0]}${dict[key]}"
+            val key2 = "${dict[key]}${key[1]}"
+            if (res.contains(key1)) {
+                res[key1] = res[key1]!! + count
+            } else {
+                res[key1] = count
+            }
+            if (res.contains(key2)) {
+                res[key2] = res[key2]!! + count
+            } else {
+                res[key2] = count
             }
         }
+        current.clear()
+        current.putAll(res)
+    }
+
+    fun substructionAfter(steps: Int, template: String, dict: Map<String, Char>): Long {
+        val tmpl = templateToCountMap(template)
+        println(tmpl)
+        for (i in 0 until steps) {
+
+            step(dict, tmpl)
+            println("Step #${i + 1}")
+            println(tmpl)
+        }
+
+        val charMap = mutableMapOf<Char, Long>()
+        tmpl.forEach { (pair, count) ->
+            charMap[pair[0]] = charMap.getOrPut(pair[0], { 0L }) + count
+            charMap[pair[1]] = charMap.getOrPut(pair[1], { 0L }) + count
+        }
+
+        println(charMap)
         val sorted = charMap.values.sorted()
-        return sorted.last() - sorted.first()
+
+        return ceil(sorted.last().toDouble() / 2).toLong() - ceil(sorted.first().toDouble() / 2).toLong()
     }
 
     fun part1(input: Pair<String, Map<String, Char>>): Long {
         val (template, dict) = input
-        val inplace = template.toMutableList()
-        return substructionAfter(10, inplace, dict)
+        return substructionAfter(10, template, dict)
     }
 
     fun part2(input: Pair<String, Map<String, Char>>): Long {
         val (template, dict) = input
-        val inplace = template.toMutableList()
-        return substructionAfter(40, inplace, dict)
+        return substructionAfter(40, template, dict)
     }
 
     fun parseInput(input: List<String>): Pair<String, Map<String, Char>> {
